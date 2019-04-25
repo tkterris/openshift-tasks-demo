@@ -23,7 +23,6 @@ pipeline {
     // Checkout Source Code and calculate Version Numbers and Tags
     stage('Checkout Source') {
       steps {
-        git credentialsId: '1cffd564-f9c7-468d-b56b-1963603a98cd', url: 'http://gogs-user11-nexus.apps.de98.openshift.opentlc.com/CICDLabs/openshift-tasks-private.git'
 
        script {
           def pom = readMavenPom file: 'pom.xml'
@@ -212,30 +211,30 @@ pipeline {
 
         script{ openshift.withCluster() { openshift.withProject("${prodProject}") {
           def route = openshift.selector("route", "tasks").object()
-          def previousApp = "${route.spec.to.name}"
-          echo "Current app in use by route: ${previousApp}"
+          def activeApp = "${route.spec.to.name}"
+          echo "Current app in use by route: ${activeApp}"
 
-          def newApp = "tasks-blue"
-          if (previousApp == "tasks-blue") {
-            newApp = "tasks-green"
+          def destApp = "tasks-blue"
+          if (activeApp == "tasks-blue") {
+            destApp = "tasks-green"
           }
-          echo "App for new version of the project: ${newApp}"
+          echo "App for new version of the project: ${destApp}"
 
-          openshift.set("image", "dc/${newApp}", "${newApp}=docker-registry.default.svc:5000/${devProject}/tasks:${devTag}")
+          openshift.set("image", "dc/${destApp}", "${destApp}=docker-registry.default.svc:5000/${devProject}/tasks:${devTag}")
 
-          openshift.selector('configmap', "${newApp}-config").delete("--ignore-not-found=true")
-          openshift.create("configmap", "${newApp}-config", "--from-file=application-users.properties=./configuration/application-users.properties", "--from-file=application-roles.properties=./configuration/application-roles.properties")
+          openshift.selector('configmap', "${destApp}-config").delete("--ignore-not-found=true")
+          openshift.create("configmap", "${destApp}-config", "--from-file=application-users.properties=./configuration/application-users.properties", "--from-file=application-roles.properties=./configuration/application-roles.properties")
 
-          openshift.selector("dc", "${newApp}").rollout().latest()
+          openshift.selector("dc", "${destApp}").rollout().latest()
 
-          def dc = openshift.selector("dc", "${newApp}").object()
+          def dc = openshift.selector("dc", "${destApp}").object()
           def dc_version = dc.status.latestVersion
-          def rc = openshift.selector("rc", "${newApp}-${dc_version}").object()
+          def rc = openshift.selector("rc", "${destApp}-${dc_version}").object()
 
-          echo "Waiting for ReplicationController ${newApp}-${dc_version} to be ready"
+          echo "Waiting for ReplicationController ${destApp}-${dc_version} to be ready"
           while (rc.spec.replicas != rc.status.readyReplicas) {
             sleep 5
-            rc = openshift.selector("rc", "${newApp}-${dc_version}").object()
+            rc = openshift.selector("rc", "${destApp}-${dc_version}").object()
 	  }
         }}}
       }
@@ -249,11 +248,10 @@ pipeline {
         echo "Executing production switch"
         
         script{ openshift.withCluster() { openshift.withProject("${devProject}") {
-          openshift.set("route-backends", "tasks", "${newApp}=100", "${previousApp}=0")
+          openshift.set("route-backends", "tasks", "${destApp}=100", "${activeApp}=0")
         }}}
 
       }
     }
   }
 }
-
