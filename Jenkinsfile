@@ -23,6 +23,7 @@ pipeline {
     // Checkout Source Code and calculate Version Numbers and Tags
     stage('Checkout Source') {
       steps {
+        git credentialsId: '1cffd564-f9c7-468d-b56b-1963603a98cd', url: 'http://gogs-user11-nexus.apps.de98.openshift.opentlc.com/CICDLabs/openshift-tasks-private.git'
 
        script {
           def pom = readMavenPom file: 'pom.xml'
@@ -211,10 +212,10 @@ pipeline {
 
         script{ openshift.withCluster() { openshift.withProject("${prodProject}") {
           def route = openshift.selector("route", "tasks").object()
-          def activeApp = "${route.spec.to.name}"
+          activeApp = "${route.spec.to.name}"
           echo "Current app in use by route: ${activeApp}"
 
-          def destApp = "tasks-blue"
+          destApp = "tasks-blue"
           if (activeApp == "tasks-blue") {
             destApp = "tasks-green"
           }
