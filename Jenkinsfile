@@ -23,7 +23,6 @@ pipeline {
     // Checkout Source Code and calculate Version Numbers and Tags
     stage('Checkout Source') {
       steps {
-        git credentialsId: '1cffd564-f9c7-468d-b56b-1963603a98cd', url: 'http://gogs-user11-nexus.apps.de98.openshift.opentlc.com/CICDLabs/openshift-tasks-private.git'
 
        script {
           def pom = readMavenPom file: 'pom.xml'
