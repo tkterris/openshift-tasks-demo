@@ -247,7 +247,7 @@ pipeline {
 
         echo "Executing production switch"
         
-        script{ openshift.withCluster() { openshift.withProject("${devProject}") {
+        script{ openshift.withCluster() { openshift.withProject("${prodProject}") {
           openshift.set("route-backends", "tasks", "${destApp}=100", "${activeApp}=0")
         }}}
 
